@@ -15,6 +15,14 @@ Events_Return Events = new()
     }
 };
 
+Events_Return Events2 = new()
+{
+    Events = new()
+    {
+        "test2"
+    }
+};
+
 Toast_Return Toast = new()
 {
     Message = new() 
@@ -24,14 +32,23 @@ Toast_Return Toast = new()
 };
 
 Client Client = new("127.0.0.1",8787,true);
+//Client Client = new("445720.xyz", 8787, true);
 Client.ConnectTCP();
 Message_Processing Message_Processing = new(Client);
 Client.DataReceived += Data;//接收服务器发送信息
 
-Client.Send("Events:"+JsonSerializer.Serialize(Events));//订阅事件
+//Client.Send("Events:"+JsonSerializer.Serialize(Events));//订阅事件
 
 //Client.Send("Message:" + JsonSerializer.Serialize(Toast));//订阅事件
 
+
+while (true)
+{
+    Client.Send("Events:" + JsonSerializer.Serialize(Events));//订阅事件
+    Thread.Sleep(10000);
+    Client.Send("Events:" + JsonSerializer.Serialize(Events2));//订阅事件
+    Thread.Sleep(10000);
+}
 
 
 

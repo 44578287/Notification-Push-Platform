@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using LoongEgg.LoongLogger;
 using TCP_UDP通信;
-using static 通知发部服务端.JSON.ToastJson;
 
 namespace 通送发布服务端.MOD
 {
@@ -67,16 +66,18 @@ namespace 通送发布服务端.MOD
                 case nameof(Message_Type.Events):
                     string TEMP_Data = Data.Substring(Data.IndexOf(":") + 1);
                     var Temp_Json = JsonSerializer.Deserialize<Client_Data>(TEMP_Data);
+                    List<string> TEMP_Old_Dara = ClientList[ID].Events ??= new();
                     ClientList[ID].Events = Temp_Json?.Events;
                     Logger.WriteInfor($"IP:{ClientList[ID].IP} ID:{ID} 设置订阅: {TEMP_Data}");
 
                     List<string> Temp_Projects = new();
-                    foreach (var Temp_Data in ClientList[ID].Events!)
+                    foreach (var Temp_Data in ClientList[ID].Events!)//遍历添加订阅
                     {
                         if (!SubscribeList.ContainsKey(Temp_Data))//判断订阅是否存在
                         {
                             SubscribeList.Add(Temp_Data, new() { ClientList[ID] });//不存在创建并存添加订阅
                             Temp_Projects.Add(Temp_Data);
+                            TEMP_Old_Dara?.RemoveAll(item => item == Temp_Data);//移除重复内容
                         }
                         else
                         {
@@ -84,10 +85,25 @@ namespace 通送发布服务端.MOD
                             {
                                 SubscribeList[Temp_Data].Add(ClientList[ID]);//存在添加订阅
                                 Temp_Projects.Add(Temp_Data);
+                                TEMP_Old_Dara?.RemoveAll(item => item == Temp_Data);//移除重复内容
                             }
                         }
                     }
-                    Logger.WriteInfor($"更新订阅成功! 受影响订阅数:{Temp_Projects.Count}");
+                    foreach (var Temp_Data in TEMP_Old_Dara)//便利移除上次存留订阅
+                    {
+                        if (SubscribeList.ContainsKey(Temp_Data))//检查订阅池里是否存在此订阅
+                        {
+                            if (SubscribeList[Temp_Data].Count > 1)//有订阅且不止一个客户端订阅则移除此客户端
+                            {
+                                SubscribeList[Temp_Data].Remove(ClientList[ID]);
+                            }
+                            else
+                            {
+                                SubscribeList.Remove(Temp_Data);//没别人了毁灭八
+                            }
+                        }
+                    }
+                    Logger.WriteInfor($"更新订阅成功! 受影响订阅数:{Temp_Projects.Count+ TEMP_Old_Dara.Count}");
 
                     break;
                 case nameof(Message_Type.Message):
